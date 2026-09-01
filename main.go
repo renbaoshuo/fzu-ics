@@ -238,6 +238,7 @@ func addCoursesToCalendar(cal *ics.Calendar, term string, courses []*jwch.Course
 			event.SetLocation(location)
 			if lat != 0 && lon != 0 {
 				event.SetGeo(lat, lon)
+				addAppleStructuredLocation(event, location, lat, lon)
 			}
 			event.SetStartAt(startTime)
 			event.SetEndAt(endTime)
@@ -294,6 +295,17 @@ func findGeoLocation(location string) (float64, float64) {
 	}
 
 	return 0, 0
+}
+
+// addAppleStructuredLocation 添加 Apple 日历使用的结构化地点字段，
+// 避免 iOS 其根据“西1-201”之类的教室名匹配到无关的地图地点。
+func addAppleStructuredLocation(event *ics.VEvent, location string, lat, lon float64) {
+	event.AddProperty(
+		ics.ComponentProperty("X-APPLE-STRUCTURED-LOCATION"),
+		fmt.Sprintf("geo:%.15f,%.15f", lat, lon),
+		ics.WithValue(string(ics.ValueDataTypeUri)),
+		&ics.KeyValues{Key: "X-TITLE", Value: []string{location}},
+	)
 }
 
 // fetchAdjustRules 从 fzuhelper API 获取指定学期的调课规则，
@@ -381,6 +393,7 @@ func addExDateAndRescheduledEvents(cal *ics.Calendar, event *ics.VEvent, exDates
 				rescheduleEvent.SetLocation(location)
 				if lat != 0 && lon != 0 {
 					rescheduleEvent.SetGeo(lat, lon)
+					addAppleStructuredLocation(rescheduleEvent, location, lat, lon)
 				}
 				rescheduleEvent.SetStartAt(rescheduleStartTime)
 				rescheduleEvent.SetEndAt(rescheduleEndTime)
